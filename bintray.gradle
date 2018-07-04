@@ -1,19 +1,26 @@
 // publish to jcenter()
+// apply from: 'https://raw.githubusercontent.com/danke77/bintray/master/bintray.gradle'
 // gradle clean install bintrayUpload
 
 apply plugin: 'com.jfrog.bintray'
 apply plugin: 'com.github.dcendents.android-maven'
+apply plugin: 'org.jetbrains.dokka-android'
 
 Properties bintrayProperties = new Properties()
 bintrayProperties.load(project.file('bintray.properties').newDataInputStream())
 
+//dokka {
+//    outputFormat = 'html'
+//    outputDirectory = "$buildDir/javadoc"
+//}
+
 task javadoc(type: Javadoc) {
+    group = 'jar'
     source = android.sourceSets.main.java.srcDirs
     classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-    classpath += project.android.libraryVariants.toList().first().javaCompile.classpath
     excludes += '**/BuildConfig.java'
     excludes += '**/R.java'
-    options.encoding "utf-8"
+    options.encoding "UTF-8"
     failOnError false
 
     if (JavaVersion.current().isJava8Compatible()) {
@@ -25,7 +32,15 @@ task javadoc(type: Javadoc) {
     }
 }
 
+//task dokkaJavadoc(type: org.jetbrains.dokka.gradle.DokkaTask) {
+//    group = 'jar'
+//    description = "Generates Kotlin API documentation."
+//    outputFormat = "javadoc"
+//    outputDirectory = javadoc.destinationDir
+//}
+
 task generateJavadocJar(type: Jar, dependsOn: javadoc) {
+    group = 'jar'
     from javadoc.destinationDir
     classifier = 'javadoc'
 }
@@ -39,6 +54,7 @@ task cleanAar() {
 }
 
 task generateSourcesJar(type: Jar, dependsOn: cleanAar) {
+    group = 'jar'
     from android.sourceSets.main.java.srcDirs
     classifier = 'sources'
 }
