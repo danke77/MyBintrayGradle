@@ -1,0 +1,133 @@
+// publish to jcenter() and mavenCentral() automatically
+// apply from: 'https://raw.githubusercontent.com/danke77/bintray/master/maven-auto.gradle'
+// gradle clean install bintrayUpload
+
+apply plugin: 'com.jfrog.bintray'
+apply plugin: 'com.github.dcendents.android-maven'
+apply plugin: 'org.jetbrains.dokka-android'
+
+Properties bintrayProperties = new Properties()
+bintrayProperties.load(project.file('bintray.properties').newDataInputStream())
+
+//dokka {
+//    outputFormat = 'html'
+//    outputDirectory = "$buildDir/javadoc"
+//}
+
+task javadoc(type: Javadoc) {
+    group = 'jar'
+    source = android.sourceSets.main.java.srcDirs
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+    excludes += '**/BuildConfig.java'
+    excludes += '**/R.java'
+    options.encoding "UTF-8"
+    failOnError false
+
+    if (JavaVersion.current().isJava8Compatible()) {
+        allprojects {
+            tasks.withType(Javadoc) {
+                options.addStringOption('Xdoclint:none', '-quiet')
+            }
+        }
+    }
+}
+
+//task dokkaJavadoc(type: org.jetbrains.dokka.gradle.DokkaTask) {
+//    group = 'jar'
+//    description = "Generates Kotlin API documentation."
+//    outputFormat = "javadoc"
+//    outputDirectory = javadoc.destinationDir
+//}
+
+task generateJavadocJar(type: Jar, dependsOn: javadoc) {
+    group = 'jar'
+    from javadoc.destinationDir
+    classifier = 'javadoc'
+}
+
+task cleanAar() {
+    def projectName = getName()
+    File file = new File("${projectName}/build/outputs/aar/")
+    if (file.exists()) {
+        file.deleteDir()
+    }
+}
+
+task generateSourcesJar(type: Jar, dependsOn: cleanAar) {
+    group = 'jar'
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
+
+artifacts {
+    archives generateJavadocJar
+    archives generateSourcesJar
+}
+
+install {
+    repositories.mavenInstaller {
+        // This generates pom.xml with proper parameters
+        pom.project {
+            packaging bintrayProperties.POM_PACKAGING
+
+            name bintrayProperties.POM_NAME
+            description bintrayProperties.POM_DESCRIPTION
+            url bintrayProperties.POM_URL
+
+            licenses {
+                license {
+                    name bintrayProperties.POM_LICENCE_NAME
+                    url bintrayProperties.POM_LICENCE_URL
+                    distribution bintrayProperties.POM_LICENCE_DIST
+                }
+            }
+
+            developers {
+                developer {
+                    id bintrayProperties.POM_DEVELOPER_ID
+                    name bintrayProperties.POM_DEVELOPER_NAME
+                    email bintrayProperties.POM_DEVELOPER_EMAIL
+                }
+            }
+
+            scm {
+                url bintrayProperties.POM_SCM_URL
+                connection bintrayProperties.POM_SCM_CONNECTION
+                developerConnection bintrayProperties.POM_SCM_DEVELOPER_CONNECTION
+            }
+        }
+    }
+}
+
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
+bintray {
+    user = properties.getProperty("bintray.user")
+    key = properties.getProperty("bintray.apikey")
+
+    configurations = ['archives']
+
+    pkg {
+        repo = 'maven'
+        name = bintrayProperties.POM_NAME
+        websiteUrl = bintrayProperties.POM_URL
+        vcsUrl = bintrayProperties.POM_SCM_CONNECTION
+        licenses = [bintrayProperties.POM_LICENCE_NAME]
+        publish = true
+        publicDownloadNumbers = true
+        version {
+            desc = bintrayProperties.POM_DESCRIPTION
+            gpg {
+                sign = true
+                passphrase = properties.getProperty("bintray.gpg.password")
+            }
+            mavenCentralSync {
+            	  sync = true
+            	  user = properties.getProperty("bintray.oss.user")
+                password = properties.getProperty("bintray.oss.password")
+                close = '1'
+            }
+        }
+    }
+}
