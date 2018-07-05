@@ -124,7 +124,7 @@ bintray {
             desc = bintrayProperties.POM_DESCRIPTION
             gpg {
                 sign = true
-                passphrase = hasFile ? properties.getProperty("bintray.gpg.password") : System.getenv('bintray.gpg.password')
+                passphrase = hasFile ? properties.getProperty('bintray.gpg.password') : System.getenv('bintray.gpg.password')
             }
             mavenCentralSync {
             	sync = true
