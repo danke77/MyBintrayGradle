@@ -20,7 +20,7 @@ task javadoc(type: Javadoc) {
     classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
     excludes += '**/BuildConfig.java'
     excludes += '**/R.java'
-    options.encoding "UTF-8"
+    options.encoding 'UTF-8'
     failOnError false
 
     if (JavaVersion.current().isJava8Compatible()) {
@@ -34,8 +34,8 @@ task javadoc(type: Javadoc) {
 
 //task dokkaJavadoc(type: org.jetbrains.dokka.gradle.DokkaTask) {
 //    group = 'jar'
-//    description = "Generates Kotlin API documentation."
-//    outputFormat = "javadoc"
+//    description = 'Generates Kotlin API documentation.'
+//    outputFormat = 'javadoc'
 //    outputDirectory = javadoc.destinationDir
 //}
 
@@ -100,11 +100,15 @@ install {
 }
 
 Properties properties = new Properties()
-properties.load(project.rootProject.file('local.properties').newDataInputStream())
+boolean hasFile = false
+if (project.rootProject.findProject('local.properties') != null) {
+    hasFile = true
+    properties.load(project.rootProject.file('local.properties').newDataInputStream())
+}
 
 bintray {
-    user = properties.getProperty("bintray.user")
-    key = properties.getProperty("bintray.apikey")
+    user = hasFile ? properties.getProperty('bintray.user') : System.getenv('bintray.user')
+    key = hasFile ? properties.getProperty('bintray.apikey') : System.getenv('bintray.apikey')
 
     configurations = ['archives']
 
@@ -120,7 +124,7 @@ bintray {
             desc = bintrayProperties.POM_DESCRIPTION
             gpg {
                 sign = true
-                passphrase = properties.getProperty("bintray.gpg.password")
+                passphrase = hasFile ? properties.getProperty('bintray.gpg.password') : System.getenv('bintray.gpg.password')
             }
         }
     }
