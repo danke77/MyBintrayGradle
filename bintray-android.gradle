@@ -4,7 +4,7 @@
 // classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.7.5'
 // classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1'
 //
-// apply from: 'https://raw.githubusercontent.com/danke77/bintray/master/bintray.gradle'
+// apply from: 'https://raw.githubusercontent.com/danke77/bintray/master/bintray-android.gradle'
 // gradle clean build bintrayUpload
 
 group = POM_GROUP
