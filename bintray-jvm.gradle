@@ -1,0 +1,138 @@
+// publish to bintray
+//
+// classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.3'
+// classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.7.5'
+//
+// apply from: 'https://raw.githubusercontent.com/danke77/bintray/master/bintray-jvm.gradle'
+// gradle clean build bintrayUpload
+
+group = POM_GROUP
+version = POM_VERSION_NAME
+project.archivesBaseName = POM_ARTIFACT_ID
+
+apply plugin: 'com.jfrog.bintray'
+apply plugin: 'com.jfrog.artifactory'
+
+task generateSourcesJar(type: Jar) {
+    group = 'jar'
+    from project.sourceSets.main.allSource
+    classifier = 'sources'
+}
+
+task generateJavadocJar(type: Jar) {
+    group = 'jar'
+    from project.javadoc.destinationDir
+    classifier = 'javadoc'
+}
+
+def pomConfig = {
+    licenses {
+        license {
+            name POM_LICENCE_NAME
+            url POM_LICENCE_URL
+            distribution POM_LICENCE_DIST
+        }
+    }
+
+    developers {
+        developer {
+            id POM_DEVELOPER_ID
+            name POM_DEVELOPER_NAME
+            email POM_DEVELOPER_EMAIL
+        }
+    }
+}
+
+/**
+ * 不要移动这个 apply 的位置，否则有可能出现
+ * ’Error: Cannot configure the ‘publishing’ extension after it has been accessed’
+ * (don’t move this snippet code position)
+ */
+apply plugin: 'maven-publish'
+publishing {
+    publications {
+        mavenKotlin(MavenPublication) {
+            groupId POM_GROUP
+            artifactId POM_ARTIFACT_ID
+            version = POM_VERSION_NAME
+
+            artifact generateSourcesJar
+            artifact generateJavadocJar
+
+            pom.withXml {
+                def root = asNode()
+                root.appendNode('description', POM_DESCRIPTION)
+                root.children().last() + pomConfig
+
+                def dependenciesNode = root.appendNode('dependencies')
+                configurations.compile.allDependencies.each {
+                    if (it.group && it.name && it.version) {
+                        def dependencyNode = dependenciesNode.appendNode('dependency')
+                        dependencyNode.appendNode('groupId', it.group)
+                        dependencyNode.appendNode('artifactId', it.name)
+                        dependencyNode.appendNode('version', it.version)
+                    }
+                }
+            }
+        }
+    }
+}
+
+bintray {
+    def USER
+    def KEY
+
+    File localPropertiesFile = new File("${rootProject.projectDir}/local.properties")
+    if (localPropertiesFile.exists()) {
+        Properties properties = new Properties()
+        properties.load(localPropertiesFile.newDataInputStream())
+
+        USER = properties.getProperty('bintray.user')
+        KEY = properties.getProperty('bintray.apikey')
+    } else {
+        USER = System.getenv('bintray.user')
+        KEY = System.getenv('bintray.apikey')
+    }
+
+    user = USER
+    key = KEY
+
+    publications = ['mavenKotlin']
+    publish = true
+
+    pkg {
+        repo = 'maven'
+        name = POM_NAME
+        desc = POM_DESCRIPTION
+        websiteUrl = POM_URL
+        issueTrackerUrl = POM_SCM_ISSUE_TRACKER_URL
+        vcsUrl = POM_SCM_CONNECTION
+        licenses = [POM_LICENCE_NAME]
+        publicDownloadNumbers = true
+    }
+}
+
+artifactory {
+    // maven { url "http://localhost:8080/artifactory/gradle-release-local" }
+    contextUrl = 'http://oss.jfrog.org/artifactory' // 'http://localhost:8080/artifactory'
+    resolve {
+        repository {
+            repoKey = 'libs-release'
+        }
+    }
+    publish {
+        repository {
+            repoKey = 'gradle-release-local' //The Artifactory repository key to publish to
+            username = bintray.user // JFrog的用户名
+            password = bintray.key // JFrog登录密码
+            // maven = true
+        }
+        defaults {
+            // Tell the Artifactory Plugin which artifacts should be published to Artifactory.
+            publications('mavenKotlin')
+            publishArtifacts = true
+            // Publish generated POM files to Artifactory (true by default)
+            publishPom = true
+        }
+    }
+}
