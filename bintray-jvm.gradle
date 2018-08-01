@@ -25,6 +25,11 @@ task generateJavadocJar(type: Jar) {
     classifier = 'javadoc'
 }
 
+artifacts {
+    archives generateSourcesJar
+    archives generateJavadocJar
+}
+
 def pomConfig = {
     licenses {
         license {
@@ -58,6 +63,8 @@ publishing {
 
             artifact generateSourcesJar
             artifact generateJavadocJar
+
+            from components.java
 
             pom.withXml {
                 def root = asNode()
